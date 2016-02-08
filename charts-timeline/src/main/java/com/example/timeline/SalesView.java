@@ -11,8 +11,15 @@ import java.util.List;
 import org.vaadin.maddon.ListContainer;
 
 import com.example.timeline.Movie.MovieRevenue;
+import com.vaadin.addon.charts.Chart;
+import com.vaadin.addon.charts.model.ChartType;
+import com.vaadin.addon.charts.model.ContainerDataSeries;
+import com.vaadin.addon.charts.model.HorizontalAlign;
+import com.vaadin.addon.charts.model.Legend;
+import com.vaadin.addon.charts.model.PlotOptionsLine;
+import com.vaadin.addon.charts.model.Series;
+import com.vaadin.addon.charts.model.VerticalAlign;
 import com.vaadin.addon.charts.model.style.SolidColor;
-import com.vaadin.addon.timeline.Timeline;
 import com.vaadin.data.Container;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
@@ -35,8 +42,9 @@ import com.vaadin.ui.themes.ValoTheme;
 @SuppressWarnings("serial")
 public class SalesView extends VerticalLayout implements View {
 
-    private final Timeline timeline;
+    private final Chart timeline;
     private ComboBox movieSelect;
+    private List<Series> series = new ArrayList<Series>();
 
     private static final SolidColor[] COLORS = new SolidColor[] {
             new SolidColor(52, 154, 255), new SolidColor(242, 81, 57),
@@ -74,15 +82,23 @@ public class SalesView extends VerticalLayout implements View {
         initMovieSelect();
 
         // Add first 4 by default        
-        List<Movie> subList = new ArrayList<Movie>(movies.subList(0, 4));
-        for (Movie m : subList) {
-            addDataSet(m);
+        List<Movie> visible = new ArrayList<Movie>(movies.subList(0, 4));
+        List<Movie> disabled = new ArrayList<Movie>(movies.subList(4, 6));
+        
+        for (Movie m : visible) {
+            addDataSet(m, true);
+        }
+        for (Movie m : disabled){
+        	System.out.println("adding " + m.getTitle());
+        	addDataSet(m, false);
         }
 
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.MONTH, -2);
-        if (timeline.getGraphDatasources().size() > 0) {
-            timeline.setVisibleDateRange(calendar.getTime(), new Date());
+        if (series.size() > 0) {
+        	//timeline.setVisibleDateRange(calendar.getTime(), new Date());
+        	timeline.getConfiguration().getxAxis().setMin(calendar.getTimeInMillis());
+        	timeline.getConfiguration().getxAxis().setMax(new Date().getTime());
         }
     }
 
@@ -117,7 +133,7 @@ public class SalesView extends VerticalLayout implements View {
                 KeyCode.ENTER, null) {
             @Override
             public void handleAction(final Object sender, final Object target) {
-                addDataSet((Movie) movieSelect.getValue());
+                addDataSet((Movie) movieSelect.getValue(), true);
             }
         });
 
@@ -141,7 +157,7 @@ public class SalesView extends VerticalLayout implements View {
         clear.addClickListener(new ClickListener() {
             @Override
             public void buttonClick(final ClickEvent event) {
-                timeline.removeAllGraphDataSources();
+                removeAllSeries();
                 initMovieSelect();
                 clear.setEnabled(false);
             }
@@ -151,26 +167,43 @@ public class SalesView extends VerticalLayout implements View {
         add.addClickListener(new ClickListener() {
             @Override
             public void buttonClick(final ClickEvent event) {
-                addDataSet((Movie) movieSelect.getValue());
+                addDataSet((Movie) movieSelect.getValue(), true);
                 clear.setEnabled(true);
             }
         });
 
         return toolbar;
     }
+    
+    private void removeAllSeries(){
+    	series.clear();
+    	timeline.getConfiguration().setSeries(series);
+    }
 
-    private Timeline buildTimeline() {
-        Timeline result = new Timeline();
-        result.setDateSelectVisible(false);
-        result.setChartModesVisible(false);
-        result.setGraphShadowsEnabled(false);
-        result.setZoomLevelsVisible(false);
+    private Chart buildTimeline() {
+        Chart result = new Chart(ChartType.LINE);
+        result.setTimeline(true);
+        result.getConfiguration().getTooltip().setValueDecimals(2);
+        
+        //result.setDateSelectVisible(false);
+        result.getConfiguration().getRangeSelector().setEnabled(false);
+        
+        Legend legend = new Legend();
+        legend.setEnabled(true);
+        legend.setVerticalAlign(VerticalAlign.TOP);
+        legend.setAlign(HorizontalAlign.RIGHT);
+        
+        result.getConfiguration().setLegend(legend);
+        
+        // result.setChartModesVisible(false);
+        //result.setGraphShadowsEnabled(false);
+        //result.setZoomLevelsVisible(false);
         result.setSizeFull();
-        result.setNoDataSourceCaption("<span class=\"v-label h2 light\">Add a data set from the dropdown above</span>");
+        //result.setNoDataSourceCaption("<span class=\"v-label h2 light\">Add a data set from the dropdown above</span>");
         return result;
     }
 
-    private void addDataSet(final Movie movie) {
+    private void addDataSet(final Movie movie, boolean visible) {
         movieSelect.removeItem(movie);
         movieSelect.setValue(null);
 
@@ -178,23 +211,33 @@ public class SalesView extends VerticalLayout implements View {
 
         ListContainer<MovieRevenue> dailyRevenueContainer = new TempMovieRevenuesContainer(
                 dailyRevenue);
+        
 
         dailyRevenueContainer.sort(new Object[] { "timestamp" },
                 new boolean[] { true });
 
-        timeline.addGraphDataSource(dailyRevenueContainer, "timestamp",
-                "revenue");
+        ContainerDataSeries containerSeries = new ContainerDataSeries(dailyRevenueContainer);
+        containerSeries.setYPropertyId("revenue");
+        containerSeries.setXPropertyId("timestamp");
+        containerSeries.setVisible(visible);
+        // timeline.addGraphDataSource(dailyRevenueContainer, "timestamp", "revenue");
+        series.add(containerSeries);
+        timeline.getConfiguration().setSeries(series);
+        
+        PlotOptionsLine options = new PlotOptionsLine();
+        containerSeries.setPlotOptions(options);
         colorIndex = (colorIndex >= COLORS.length - 1 ? 0 : ++colorIndex);
-        timeline.setGraphOutlineColor(dailyRevenueContainer, COLORS[colorIndex]);
-        timeline.setBrowserOutlineColor(dailyRevenueContainer,
-                COLORS[colorIndex]);
-        timeline.setBrowserFillColor(dailyRevenueContainer,
-                COLORS_ALPHA[colorIndex]);
-        timeline.setGraphCaption(dailyRevenueContainer, movie.getTitle());
-        timeline.setEventCaptionPropertyId("date");
-        timeline.setVerticalAxisLegendUnit(dailyRevenueContainer, "$");
+        // timeline.setGraphOutlineColor(dailyRevenueContainer, COLORS[colorIndex]);
+        options.setColor(COLORS[colorIndex]);
+//        timeline.setBrowserOutlineColor(dailyRevenueContainer,
+//                COLORS[colorIndex]);
+//        timeline.setBrowserFillColor(dailyRevenueContainer,
+//                COLORS_ALPHA[colorIndex]);
+        containerSeries.setName(movie.getTitle());
+//        timeline.setEventCaptionPropertyId("date");
+//        timeline.setVerticalAxisLegendUnit(dailyRevenueContainer, "$");
     }
-    
+   
 
     @Override
     public void enter(final ViewChangeEvent event) {
