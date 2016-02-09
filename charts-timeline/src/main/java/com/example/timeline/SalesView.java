@@ -8,8 +8,17 @@ import java.util.Random;
 
 import org.vaadin.maddon.ListContainer;
 
+import com.vaadin.addon.charts.Chart;
+import com.vaadin.addon.charts.model.ChartType;
+import com.vaadin.addon.charts.model.ContainerDataSeries;
+import com.vaadin.addon.charts.model.HorizontalAlign;
+import com.vaadin.addon.charts.model.Legend;
+import com.vaadin.addon.charts.model.Marker;
+import com.vaadin.addon.charts.model.MarkerSymbolEnum;
+import com.vaadin.addon.charts.model.PlotOptionsLine;
+import com.vaadin.addon.charts.model.Series;
+import com.vaadin.addon.charts.model.VerticalAlign;
 import com.vaadin.addon.charts.model.style.SolidColor;
-import com.vaadin.addon.timeline.Timeline;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.Label;
@@ -19,7 +28,7 @@ import com.vaadin.ui.themes.ValoTheme;
 @SuppressWarnings("serial")
 public class SalesView extends VerticalLayout implements View {
 
-	private final Timeline timeline;
+	private final Chart timeline;
 
 	private static final SolidColor[] COLORS = new SolidColor[] {
 			new SolidColor(52, 154, 255), 
@@ -46,23 +55,32 @@ public class SalesView extends VerticalLayout implements View {
 		Label titleLabel = new Label("Revenue by Movie");
 		titleLabel.addStyleName(ValoTheme.LABEL_H1);
 
-		timeline = new Timeline();
-		timeline.setDateSelectVisible(false);
-		timeline.setChartModesVisible(false);
-		timeline.setGraphShadowsEnabled(false);
-		timeline.setZoomLevelsVisible(false);
+		timeline = new Chart(ChartType.LINE);
+		timeline.setTimeline(true);
+		timeline.getConfiguration().getTooltip().setValueDecimals(2);
+		timeline.getConfiguration().getRangeSelector().setEnabled(false);
+
+		Legend legend = new Legend();
+		legend.setEnabled(true);
+		legend.setVerticalAlign(VerticalAlign.TOP);
+		legend.setAlign(HorizontalAlign.RIGHT);
+		timeline.getConfiguration().setLegend(legend);
+		
+		PlotOptionsLine plotOptionsLine = new PlotOptionsLine();
+		Marker marker = new Marker();
+		marker.setEnabled(false);
+		marker.setSymbol(MarkerSymbolEnum.CIRCLE);
+		plotOptionsLine.setMarker(marker);
+		timeline.getConfiguration().setPlotOptions(plotOptionsLine);
 		timeline.setSizeFull();
-		timeline.setNoDataSourceCaption("<span class=\"v-label h2 light\">Add a data set from the dropdown above</span>");
 		for (String movie : movies) {
 			addDataSet(movie);
 		}
 
 		Calendar calendar = Calendar.getInstance();
 		calendar.add(Calendar.MONTH, -2);
-		if (timeline.getGraphDatasources().size() > 0) {
-			timeline.setVisibleDateRange(calendar.getTime(), new Date());
-		}
-
+		timeline.getConfiguration().getxAxis().setMin(calendar.getTimeInMillis());
+		timeline.getConfiguration().getxAxis().setMax(new Date().getTime());
 		setSizeFull();
 		addComponents(titleLabel);
 		addComponent(timeline);
@@ -79,17 +97,18 @@ public class SalesView extends VerticalLayout implements View {
 		dailyRevenueContainer.sort(new Object[] { "time" },
 				new boolean[] { true });
 
-		timeline.addGraphDataSource(dailyRevenueContainer, "time",
-				"price");
+		ContainerDataSeries containerSeries = new ContainerDataSeries(dailyRevenueContainer);
+		containerSeries.setYPropertyId("price");
+		containerSeries.setXPropertyId("time");
+		List<Series> series = new ArrayList<Series>(timeline.getConfiguration().getSeries());
+		series.add(containerSeries);
 		
-		timeline.setGraphOutlineColor(dailyRevenueContainer, COLORS[colorIndex]);
-		timeline.setBrowserOutlineColor(dailyRevenueContainer,
-				COLORS[colorIndex]);
-		timeline.setBrowserFillColor(dailyRevenueContainer,
-				COLORS_ALPHA[colorIndex]);
-		timeline.setGraphCaption(dailyRevenueContainer, movie);
-		timeline.setEventCaptionPropertyId("date");
-		timeline.setVerticalAxisLegendUnit(dailyRevenueContainer, "$");
+		timeline.getConfiguration().setSeries(series);
+		 
+		PlotOptionsLine options = new PlotOptionsLine();
+		containerSeries.setPlotOptions(options);
+		options.setColor(COLORS[colorIndex]);
+		containerSeries.setName(movie); 
 		colorIndex++;
 	}
 
