@@ -42,6 +42,8 @@ public class SalesView extends VerticalLayout implements View {
 	String[] movies = new String[] { "Left Behind", "The Maze Runner",
 			"The Equalizer", "Annabelle", "Gone Girl", "The Boxtrolls" };
 
+	Random random = new Random(12345678);
+	
 	public SalesView() {
 		Label titleLabel = new Label("Revenue by Movie");
 		titleLabel.addStyleName(ValoTheme.LABEL_H1);
@@ -95,29 +97,28 @@ public class SalesView extends VerticalLayout implements View {
 
 	private List<Transaction> generateTransactions() {
 		List<Transaction> transactions = new ArrayList<Transaction>();
-		Random rand = new Random();
 
-		double multiplier = rand.nextDouble() * 2;
+		double multiplier = random.nextDouble() * 2;
 		Calendar date = Calendar.getInstance();
 		date.set(Calendar.HOUR_OF_DAY, 0);
 		date.set(Calendar.MINUTE, 0);
 		date.set(Calendar.SECOND, 0);
 		date.set(Calendar.MILLISECOND, 0);
 
-		int daysSubtractor = rand.nextInt(150) + 30;
+		int daysSubtractor = random.nextInt(150) + 30;
 		date.add(Calendar.DAY_OF_YEAR, -daysSubtractor);
 
 		Calendar today = Calendar.getInstance();
 		double total = 0;
 		while (date.before(today)) {
 			Transaction transaction = new Transaction();
-			total = total + rand.nextDouble() * 500 * multiplier + 500;
+			total = total + random.nextDouble() * 500 * multiplier + 500;
 
 			transaction.setTime(date.getTime());
 			transaction.setPrice(total);
 
 			transactions.add(transaction);
-			date.add(Calendar.DAY_OF_MONTH, rand.nextInt(3) + 1);
+			date.add(Calendar.DAY_OF_MONTH, random.nextInt(3) + 1);
 		}
 		return transactions;
 	}
