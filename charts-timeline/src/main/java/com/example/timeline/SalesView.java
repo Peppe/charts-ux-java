@@ -6,10 +6,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-import org.vaadin.maddon.ListContainer;
-
 import com.vaadin.addon.charts.model.style.SolidColor;
 import com.vaadin.addon.timeline.Timeline;
+import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.Label;
@@ -75,8 +74,7 @@ public class SalesView extends VerticalLayout implements View {
 	private void addDataSet(String movie) {
 		List<Transaction> dailyRevenue = generateTransactions();
 
-		ListContainer<Transaction> dailyRevenueContainer = new ListContainer<Transaction>(
-				dailyRevenue);
+		BeanItemContainer<Transaction> dailyRevenueContainer = new BeanItemContainer<SalesView.Transaction>(Transaction.class, dailyRevenue);
 
 		dailyRevenueContainer.sort(new Object[] { "time" },
 				new boolean[] { true });
