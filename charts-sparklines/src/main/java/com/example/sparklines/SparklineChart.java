@@ -1,8 +1,8 @@
 package com.example.sparklines;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import com.vaadin.addon.charts.Chart;
 import com.vaadin.addon.charts.model.ChartType;
@@ -36,8 +36,8 @@ public class SparklineChart extends VerticalLayout {
         setSizeUndefined();
         addStyleName("spark");
         setDefaultComponentAlignment(Alignment.TOP_CENTER);
-
-        int[] values = randomSparklineValues(howManyPoints,
+        Random random = new Random(12345678);
+        int[] values = randomSparklineValues(random, howManyPoints,
                 min, max);
 
         Label current = new Label(prefix + values[values.length - 1] + unit);
@@ -66,11 +66,11 @@ public class SparklineChart extends VerticalLayout {
 
     }
     
-    public static int[] randomSparklineValues(int howMany, int min, int max) {
+    public static int[] randomSparklineValues(Random random, int howMany, int min, int max) {
         int[] values = new int[howMany];
 
         for (int i = 0; i < howMany; i++) {
-            values[i] = (int) (min + (Math.random() * (max - min)));
+            values[i] = (int) (min + (random.nextDouble() * (max - min)));
         }
 
         return values;
